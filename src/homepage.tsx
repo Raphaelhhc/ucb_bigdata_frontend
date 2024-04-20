@@ -7,13 +7,14 @@ const libraries: ("places")[] = ['places'];
 function Homepage() {
 
     const this_year: number = new Date().getFullYear();
-    const past_span: number = 5;
+    const past_span: number = 2;
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
     const [inputValue, setInputValue] = useState<string>("");
     const [place, setPlace] = useState<google.maps.places.PlaceResult | null>(null);
     const [day_span, setDaySpan] = useState<number>(1);
     const [resultData, setResultData] = useState(null);
     const [resultloading, setResultLoading] = useState(false);
+    const [showStatus, setShowStatus] = useState<string>("Enter Place and Travel Day Span and click RUN button");
     
     const { isLoaded } = useLoadScript({
         googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "",
@@ -59,6 +60,7 @@ function Homepage() {
     const getResultData = async () => {
         try {
             setResultLoading(true);
+            setShowStatus('Start analysis!');
             const checkresult = await axios.post(`${process.env.REACT_APP_RESTAPI_URL || 'http://127.0.0.1:5000'}/recommend/cache`, {
                 place: place?.name,
                 this_year: this_year,
@@ -66,16 +68,29 @@ function Homepage() {
                 day_span: day_span
             });
             if (checkresult.data) {
+                setShowStatus('Analysis done!');
                 setResultData(checkresult.data);
             } else {
+                setShowStatus('Data collect start!');
+                console.log('data collect start!');
 
                 const rain_volume_lists = await getRainVolumeLists();
                 const temperature_lists = await getTemperatureLists();
 
+                setShowStatus('Data collect done!');
+                console.log('data collect done!');
+
+                if (!rain_volume_lists || !temperature_lists) {
+                    setShowStatus('Unable to collect data, please try again!');
+                    setResultLoading(false);
+                    return;
+                }
+
                 if (rain_volume_lists && temperature_lists) {
                     const [rain_volume_probabilities, rain_volume_scores] = await getRainVolumeProbabilityScore(rain_volume_lists);
                     const [temperature_probabilities, temperature_scores] = await getTemperatureProbabilityScore(temperature_lists);
-                    console.log('data collect & analysis done!')
+                    setShowStatus('Data analysis done!');
+                    console.log('data analysis done!');
 
                     const response = await axios.post(`${process.env.REACT_APP_RESTAPI_URL || 'http://127.0.0.1:5000'}/recommend`, {
                         place: place?.name,
@@ -87,12 +102,14 @@ function Homepage() {
                         rain_volume_scores: rain_volume_scores,
                         temperature_scores: temperature_scores
                     });
+                    setShowStatus('Analysis done!');
                     setResultData(response.data);
                 }
             }
             setResultLoading(false);
         } catch (error) {
             console.error('Error fetching data: ', error);
+            setShowStatus('Error happened, please try again!');
             setResultLoading(false);
         }
     }
@@ -108,7 +125,6 @@ function Homepage() {
             });
             if (response.data.rain_volume_lists) {
                 const rain_volume_lists = response.data.rain_volume_lists;
-                console.log('Get rain volume lists!');
                 return rain_volume_lists;
             } else {
                 console.error('No rain volume lists in response');
@@ -129,7 +145,6 @@ function Homepage() {
             });
             if (response.data.temperature_lists) {
                 const temperature_lists = response.data.temperature_lists;
-                console.log('Get temperature lists!');
                 return temperature_lists;
             } else {
                 console.error('No temperature lists in response');
@@ -151,7 +166,6 @@ function Homepage() {
             if (response.data.rain_volume_probabilities && response.data.rain_volume_scores) {
                 const rain_volume_probabilities = response.data.rain_volume_probabilities;
                 const rain_volume_scores = response.data.rain_volume_scores;
-                console.log('Get rain volume probabilities and scores!');
                 return [rain_volume_probabilities, rain_volume_scores];
             } else {
                 console.error('No rain volume probabilities and scores in response');
@@ -260,6 +274,7 @@ function Homepage() {
                             <h3 className='card-title'>
                                 ANALYSIS RESULT
                             </h3>
+                            <p>Current Status: {showStatus}</p>
 
                             {resultloading && (
                                 <div className="d-flex justify-content-center">
