@@ -14,7 +14,7 @@ function Homepage() {
     const [day_span, setDaySpan] = useState<number>(1);
     const [resultData, setResultData] = useState(null);
     const [resultloading, setResultLoading] = useState(false);
-    const [showStatus, setShowStatus] = useState<string>("Enter Place and Travel Day Span and click RUN button");
+    const [showStatus, setShowStatus] = useState<string>("Enter Place and Travel Day Span and click RUN button.");
     
     const { isLoaded } = useLoadScript({
         googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "",
