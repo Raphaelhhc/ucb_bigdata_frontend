@@ -7,7 +7,7 @@ const libraries: ("places")[] = ['places'];
 function Homepage() {
 
     const this_year: number = new Date().getFullYear();
-    const past_span: number = 3;
+    const past_span: number = 2;
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
     const [inputValue, setInputValue] = useState<string>("");
     const [place, setPlace] = useState<google.maps.places.PlaceResult | null>(null);
